@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoVerse — Learn & Play</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root{
+      /* Fresh light-blue theme */
+      --bg1:#e6f4ff; --bg2:#cfefff; --bg3:#b3e5fc; 
+      --panel:#ffffffee; --panel-2:#ffffffcc; --brand:#2fa3ff; --brand-2:#1c87e6;
+      --muted:#4b5b6a; --text:#0f1720; --danger:#e05858; --ok:#1e9e57; --border:#cfe3f5;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; color:var(--text);
+      background: radial-gradient(80% 100% at 10% 0%, var(--bg1) 0%, var(--bg2) 40%, #d7f7ff 70%) fixed,
+                  linear-gradient(160deg, var(--bg1), var(--bg3)) fixed;
+      overflow:auto;
+    }
+    /* App Shell */
+    .shell{display:grid; grid-template-columns:260px 1fr; grid-template-rows:64px auto; min-height:100vh}
+    header{grid-column:1 / span 2; background:linear-gradient(90deg,#e0f3ff,#bfe7ff); color:#0d2a3d; display:flex; align-items:center; gap:12px; padding:0 18px; font-weight:800; letter-spacing:.3px; border-bottom:1px solid var(--border)}
+    header .right{margin-left:auto; opacity:.85}
+    nav{background:#f6fbff; padding:18px; border-right:1px solid var(--border)}
+    nav .brand{display:flex; align-items:center; gap:10px; font-weight:800; margin-bottom:10px}
+    nav .brand i{color:var(--brand)}
+    nav .link{display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border-radius:12px; border:1px solid transparent; background:transparent; color:#14324a; cursor:pointer; margin:6px 0; text-align:left; font-weight:600}
+    nav .link:hover{background:#e7f4ff; border-color:#d4ebff}
+    main{padding:20px;}
+
+    /* Panels */
+    .panel{background:var(--panel-2); backdrop-filter:saturate(1.4) blur(4px); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:18px; box-shadow:0 8px 24px rgba(15,23,32,.06)}
+    .panel h2{margin:0 0 10px; font-size:18px}
+    .muted{color:var(--muted)}
+    .grid{display:grid; gap:16px}
+    .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    @media(max-width:900px){.shell{grid-template-columns:1fr;}.hide-on-mobile{display:none}.grid.cols-3{grid-template-columns:1fr}.grid.cols-2{grid-template-columns:1fr}}
+
+    /* Buttons & Inputs */
+    button{background:var(--brand); border:none; color:#fff; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; box-shadow:0 4px 10px rgba(28,135,230,.18)}
+    button.ghost{background:#f1f8ff; border:1px solid var(--border); color:#0f2a40}
+    button.warn{background:var(--danger); color:#fff}
+    input, select{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#ffffff; color:var(--text)}
+
+    /* Fun fact bar */
+    .funbar{background:#eef7ff; border:1px solid var(--border); padding:10px 14px; border-radius:12px}
+
+    /* Badges */
+    .badge{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#ffea8a; color:#1b1b1b; border-radius:999px; margin:4px 6px 0 0; font-weight:800}
+    .badge.locked{background:#ffffff; color:#8ca0b0; border:1px dashed var(--border)}
+
+    /* Quiz */
+    .q-card{background:#ffffff; border:1px solid var(--border); border-radius:16px; padding:16px}
+    .options{display:grid; gap:10px; margin-top:12px}
+    .opt{padding:12px; border-radius:12px; border:1px solid #d6e8f8; background:#f7fbff; cursor:pointer; display:flex; align-items:center; gap:10px; transition:transform .05s ease, background .2s}
+    .opt:hover{transform:translateY(-1px); background:#eefdff}
+    .opt.correct{background:#e8fff1; border-color:#79d7a4}
+    .opt.wrong{background:#ffe8e8; border-color:#f1a1a1}
+
+    /* Story */
+    .story{line-height:1.65; max-height:320px; overflow:auto; padding-right:6px}
+    .story h3{margin:8px 0}
+
+    /* Floating eco icons */
+    .floating-icon{position:fixed; font-size:22px; color:#3a6d8a22; animation:float 10s infinite linear; pointer-events:none}
+    @keyframes float{0%{transform:translateY(0)}50%{transform:translateY(-40px)}100%{transform:translateY(0)}}
+
+    /* Fullscreen Login */
+    .login-wrap{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background: radial-gradient(120% 100% at 20% 0%, #d9f0ff 0%, #bfe7ff 60%);}  
+    .login-card{width:98%; max-width:520px; background:#ffffffea; border:1px solid var(--border); border-radius:18px; padding:22px; box-shadow:0 16px 42px rgba(15,23,32,.15)}
+    .brand-top{display:flex; align-items:center; gap:10px; font-weight:900; font-size:22px; margin-bottom:6px; color:#0f2a40}
+    .brand-top i{color:var(--brand)}
+    .login-sub{opacity:.9; margin-bottom:14px}
+  </style>
+</head>
+<body>
+  <div class="shell" id="app">
+    <header>
+      <i class="fa-solid fa-globe"></i> EcoVerse
+      <div class="right muted" id="topInfo"></div>
+    </header>
+    <nav class="hide-on-mobile">
+      <div class="brand"><i class="fa-solid fa-seedling"></i> <span>EcoVerse</span></div>
+      <button class="link" onclick="show('dashboard')"><i class="fa-solid fa-house"></i> Dashboard</button>
+      <button class="link" onclick="show('quiz')"><i class="fa-solid fa-circle-question"></i> Quiz</button>
+      <button class="link" onclick="show('story')"><i class="fa-solid fa-book"></i> Story</button>
+      <button class="link" onclick="show('task')"><i class="fa-solid fa-camera"></i> Daily Task</button>
+      <button class="link" onclick="show('achievements')"><i class="fa-solid fa-award"></i> Achievements</button>
+      <button class="link" onclick="show('leaderboard')"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
+      <button class="link" onclick="show('certificate')"><i class="fa-solid fa-certificate"></i> Certificate</button>
+      <hr style="border-color:var(--border)">
+      <button class="link" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </nav>
+    <main id="main"></main>
+  </div>
+
+  <!-- Floating icons -->
+  <script>
+    const ecoIcons=["leaf","tree","recycle","droplet","earth-asia","wind"];
+    for(let i=0;i<18;i++){
+      const el=document.createElement('i');
+      el.className=`fa-solid fa-${ecoIcons[i%ecoIcons.length]} floating-icon`;
+      el.style.left=Math.random()*100+'vw';
+      el.style.top=Math.random()*100+'vh';
+      el.style.animationDuration=10+Math.random()*12+'s';
+      document.body.appendChild(el);
+    }
+  </script>
+
+  <script>
+    const state = {
+      name:"", class:"", points:0, badges:[], completedOn:"", // date key when last daily task completed
+      // --- minimal streak fields added (nothing else changed) ---
+      streak:0,
+      lastTaskDate:"",
+      facts:[
+        "Recycling one ton of paper saves 17 trees!",
+        "Turning off lights saves energy and reduces CO2.",
+        "Plastic can take over 400 years to decompose.",
+        "Planting native trees supports local wildlife.",
+        "Shorter showers save up to 9 liters per minute.",
+        "Every tree can absorb up to 22 kg of CO2 per year.",
+        "LED bulbs use up to 75% less energy than incandescent.",
+        "A dripping tap can waste 3000+ liters a year.",
+        "Composting can reduce household waste by about 30%.",
+        "Bees pollinate ~1/3 of the food we eat.",
+        "Recycling one aluminum can saves enough energy to run a TV for 3 hours.",
+        "Walking or cycling short trips cuts air pollution a lot.",
+        "Switching to cloth bags can keep dozens of plastic bags out of oceans."
+      ],
+      qIndex:0, score:0,
+      funTimer:null,
+    };
+
+    const DAILY_TASKS = [
+      "Switch off unnecessary lights for 1 hour",
+      "Carry a cloth bag instead of plastic",
+      "Bring a reusable water bottle",
+      "Segregate wet and dry waste at home",
+      "Water a plant and click a photo",
+      "Pick up 5 pieces of litter safely",
+      "Unplug chargers when not in use",
+      "Use both sides of paper for notes",
+      "Share an eco-tip with a friend",
+      "Check taps for leaks and report"
+    ];
+
+    const questionBank = [
+      {q:"Which gas do trees absorb during photosynthesis?", opts:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"], correct:2},
+      {q:"Which of these is renewable energy?", opts:["Coal","Solar","Diesel","Natural Gas"], correct:1},
+      {q:"Best way to save electricity at home?", opts:["Open fridge often","Leave lights on","Use LED bulbs","Keep TV on"], correct:2},
+      {q:"3R stands for?", opts:["Rebuild, Resell, Return","Reduce, Reuse, Recycle","Refuse, React, Repair","Remove, Reboot, Recycle"], correct:1},
+      {q:"Plastic bags harm animals mainly because?", opts:["They are colorful","Animals eat them","They are light","They are cheap"], correct:1},
+      {q:"What should go into a compost bin?", opts:["Banana peels","Glass","Batteries","Metal cans"], correct:0},
+      {q:"Best time to water plants?", opts:["Noon","Early morning/late evening","Midnight","Anytime"], correct:1}
+    ];
+
+    function save(){localStorage.setItem('eco@state',JSON.stringify(state));}
+    function load(){const s=localStorage.getItem('eco@state'); if(s) Object.assign(state, JSON.parse(s));}
+    function logout(){localStorage.removeItem('eco@state'); location.reload();}
+
+    function setTopInfo(){
+      const t=document.getElementById('topInfo');
+      if(!t) return;
+      if(state.name){
+        // minimal change: show streak in header (added only this small piece)
+        t.innerHTML = `Hello, <b>${state.name}</b> · Class ${state.class} · <i class="fa-solid fa-coins"></i> ${state.points} pts · 🔥 ${state.streak||0}-day streak`;
+      }
+      else t.innerHTML = '';
+    }
+
+    // ROUTER
+    function show(view){
+      if(!state.name){renderLogin();return;}
+      setTopInfo();
+      if(view==='dashboard') return renderDashboard();
+      if(view==='quiz') return renderQuizIntro();
+      if(view==='story') return renderStory();
+      if(view==='task') return renderTask();
+      if(view==='achievements') return renderAchievements();
+      if(view==='leaderboard') return renderLeaderboard();
+      if(view==='certificate') return renderCertificate();
+      renderDashboard();
+    }
+
+    // LOGIN FULLSCREEN
+    function renderLogin(){
+      if(document.getElementById('loginWrap')) return; // prevent duplicate
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="login-wrap" id="loginWrap">
+          <div class="login-card">
+            <div class="brand-top"><i class="fa-solid fa-earth-asia"></i> EcoVerse</div>
+            <div class="login-sub muted">Learn, play and save the planet 🌱</div>
+            <label>Name</label>
+            <input id="lgName" placeholder="Enter your name" />
+            <div style="height:10px"></div>
+            <label>Class</label>
+            <select id="lgClass">${Array.from({length:12},(_,i)=>`<option value="${i+1}">Class ${i+1}</option>`).join('')}</select>
+            <div style="height:14px"></div>
+            <button onclick="doLogin()"><i class='fa-solid fa-right-to-bracket'></i> Start</button>
+          </div>
+        </div>`);
+    }
+    function doLogin(){
+      const n=document.getElementById('lgName').value.trim();
+      const c=document.getElementById('lgClass').value;
+      if(!n) return alert('Please enter your name');
+      state.name=n; state.class=c; save();
+      const w=document.getElementById('loginWrap'); if(w) w.remove();
+      setTopInfo(); show('dashboard');
+    }
+
+    // FUN FACT TICKER (9s)
+    function startFunFactsTicker(){
+      if(state.funTimer){ clearInterval(state.funTimer); state.funTimer=null; }
+      const el=document.getElementById('funFactText');
+      if(!el) return;
+      const rotate=()=>{ el.textContent = state.facts[Math.floor(Math.random()*state.facts.length)]; };
+      rotate();
+      state.funTimer = setInterval(rotate, 9000);
+    }
+
+    // DASHBOARD
+    function renderDashboard(){
+      const el=document.getElementById('main');
+      const fact=state.facts[Math.floor(Math.random()*state.facts.length)];
+      el.innerHTML = `
+        <div class="funbar"><b>Fun Fact:</b> <span id="funFactText">${fact}</span></div>
+        <div class="grid cols-3">
+          <div class="panel">
+            <h2><i class="fa-solid fa-chart-line"></i> Your Progress</h2>
+            <div class="muted">Points: <b>${state.points}</b></div>
+            <canvas id="progChart" height="140"></canvas>
+          </div>
+          <div class="panel">
+            <h2><i class="fa-solid fa-circle-question"></i> Quiz</h2>
+            <div class="muted">7 MCQs · 100 pts each correct</div>
+            <button onclick="renderQuizIntro()">Start Quiz</button>
+          </div>
+          <div class="panel">
+            <h2><i class="fa-solid fa-camera"></i> Daily Task</h2>
+            <div id="dailyBlock"></div>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <div class="panel">
+            <h2><i class="fa-solid fa-book"></i> Story Mode</h2>
+            <div class="story" id="storyBox"></div>
+            <div style="display:flex; gap:10px; margin-top:10px">
+              <button class="ghost" onclick="prevChapter()"><i class="fa-solid fa-arrow-left"></i> Prev</button>
+              <button onclick="nextChapter()">Next <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+          </div>
+          <div class="panel">
+            <h2><i class="fa-solid fa-award"></i> Achievements</h2>
+            <div id="badgesWrap">${renderBadges()}</div>
+          </div>
+        </div>`;
+      drawChart();
+      currentChapter=0; renderChapter();
+      renderDailyBlock();
+      startFunFactsTicker();
+    }
+
+    // CHART
+    function drawChart(){
+      const ctx=document.getElementById('progChart'); if(!ctx) return;
+      const pts=state.points || 0;
+      new Chart(ctx,{type:'bar',data:{labels:['Points'],datasets:[{label:'Your Points',data:[pts]}]},options:{plugins:{legend:{display:false}}}});
+    }
+
+    // QUIZ (MCQ)
+    function renderQuizIntro(){
+      const el=document.getElementById('main');
+      el.innerHTML = `
+        <div class='panel'>
+          <h2><i class="fa-solid fa-circle-question"></i> Quiz — Class ${state.class}</h2>
+          <div class='muted'>7 questions · 100 pts for each correct answer</div>
+          <div style='height:8px'></div>
+          <button onclick='startQuiz()'>Start Now</button>
+        </div>`;
+    }
+
+    let quizOrder=[], answered=false;
+    function startQuiz(){
+      state.qIndex=0; state.score=0; quizOrder = [...questionBank];
+      renderQuestion();
+    }
+    function renderQuestion(){
+      const q=quizOrder[state.qIndex];
+      const el=document.getElementById('main');
+      const progress = `${state.qIndex+1} / ${quizOrder.length}`;
+      el.innerHTML = `
+        <div class='panel q-card'>
+          <div class='muted'>Question ${progress}</div>
+          <h2>${q.q}</h2>
+          <div class='options'>
+            ${q.opts.map((t,idx)=>`<div class='opt' id='opt${idx}' onclick='choose(${idx})'><i class="fa-solid fa-circle"></i> ${t}</div>`).join('')}
+          </div>
+          <div style='margin-top:12px; display:flex; gap:10px'>
+            <button class='ghost' onclick='quitQuiz()'>Quit</button>
+          </div>
+        </div>`;
+      answered=false;
+    }
+    function choose(idx){
+      if(answered) return; answered=true;
+      const q=quizOrder[state.qIndex];
+      const correct = q.correct;
+      for(let i=0;i<q.opts.length;i++){
+        const el=document.getElementById('opt'+i); if(!el) continue;
+        if(i===correct) el.classList.add('correct');
+        if(i===idx && idx!==correct) el.classList.add('wrong');
+        el.style.pointerEvents='none';
+      }
+      if(idx===correct){ state.score++; state.points+=100; checkBadges(); save(); }
+      setTimeout(()=>{
+        state.qIndex++;
+        if(state.qIndex>=quizOrder.length){
+          showQuizResult();
+        } else { renderQuestion(); }
+      }, 800);
+    }
+    function showQuizResult(){
+      const el=document.getElementById('main');
+      el.innerHTML = `
+        <div class='panel'>
+          <h2>Quiz Result</h2>
+          <p>You answered <b>${state.score}</b> / ${questionBank.length} correctly.</p>
+          <p>Total points: <b>${state.points}</b></p>
+          <button onclick="renderQuizIntro()">Try Again</button>
+          <button class='ghost' onclick="show('dashboard')">Back to Dashboard</button>
+        </div>`;
+    }
+    function quitQuiz(){ show('dashboard'); }
+
+    // STORY MODE (3 chapters)
+    const chapters=[
+      {title:"Tree Plantation Day", body:"Our school organized a Tree Plantation Day. Students learned how trees absorb carbon dioxide and release oxygen. We planted native saplings like neem and peepal. By the end of the day, the ground looked greener and everyone pledged to water their plant every week."},
+      {title:"Plastic Ban Drive", body:"The Eco Club started a plastic-free campaign. We surveyed shops near the school and encouraged them to switch to cloth or jute bags. Parents were given reusable bottles and tiffin boxes. Slowly, we noticed fewer plastic wrappers in the playground!"},
+      {title:"Clean River Mission", body:"On World Environment Day, we visited the local river. With gloves and sacks, we collected trash from the banks and learned about wastewater treatment. We also put up posters about not dumping garbage in water bodies. The river looked healthier and birds returned."}
+    ];
+    let currentChapter=0;
+    function renderStory(){
+      const el=document.getElementById('main');
+      el.innerHTML = `
+        <div class='panel'>
+          <h2><i class="fa-solid fa-book"></i> Story Mode</h2>
+          <div class='story' id='storyBox'></div>
+          <div style='display:flex; gap:10px; margin-top:10px'>
+            <button class='ghost' onclick='prevChapter()'><i class='fa-solid fa-arrow-left'></i> Prev</button>
+            <button onclick='nextChapter()'>Next <i class='fa-solid fa-arrow-right'></i></button>
+          </div>
+        </div>`;
+      currentChapter=0; renderChapter();
+    }
+    function renderChapter(){
+      const s=document.getElementById('storyBox'); if(!s) return;
+      const ch=chapters[currentChapter];
+      s.innerHTML = `<h3>${currentChapter+1}. ${ch.title}</h3><p>${ch.body}</p>`;
+    }
+    function nextChapter(){ if(currentChapter<chapters.length-1){ currentChapter++; state.points+=100; checkBadges(); save(); renderChapter(); } }
+    function prevChapter(){ if(currentChapter>0){ currentChapter--; renderChapter(); } }
+
+    // DAILY TASK — assigned per day + proof upload
+    function todayKey(){ const d=new Date(); const m=(d.getMonth()+1).toString().padStart(2,'0'); const day=d.getDate().toString().padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; }
+    function hashKey(k){ let h=0; for(let i=0;i<k.length;i++){ h=(h*31 + k.charCodeAt(i))>>>0; } return h; }
+    function assignedTaskFor(dateKey){ const idx=hashKey(dateKey) % DAILY_TASKS.length; return {index:idx, text:DAILY_TASKS[idx]}; }
+
+    function renderTask(){
+      const el=document.getElementById('main');
+      const key=todayKey(); const assigned=assignedTaskFor(key);
+      const done = state.completedOn===key;
+      el.innerHTML = `
+        <div class='panel'>
+          <h2><i class="fa-solid fa-camera"></i> Daily Mission</h2>
+          <div class='muted'>Complete today's task and upload a photo to earn <b>+150</b> points.</div>
+          <div style='margin:10px 0; padding:10px; border:1px dashed var(--border); background:#f7fbff; border-radius:10px'><b>• ${assigned.text}</b></div>
+          ${done?`<div class='muted'><i class="fa-solid fa-circle-check"></i> Completed for today</div>`:`
+            <input type='file' id='dailyInputTask' accept='image/*' capture='environment'>
+            <div style='height:8px'></div>
+            <button onclick='submitTaskFromTaskPage()'><i class="fa-solid fa-upload"></i> Submit Proof</button>
+          `}
+        </div>`;
+    }
+
+    function renderDailyBlock(){
+      const wrap=document.getElementById('dailyBlock'); if(!wrap) return;
+      const key=todayKey(); const assigned=assignedTaskFor(key);
+      const done = state.completedOn===key;
+      wrap.innerHTML = `
+        <div class='muted'>Today's Task:</div>
+        <div style='margin:8px 0; padding:10px; border:1px dashed var(--border); border-radius:10px; background:#f7fbff'>
+          <b>• ${assigned.text}</b>
+        </div>
+        ${done ? `<div class='muted'><i class="fa-solid fa-circle-check" style="color:${getComputedStyle(document.documentElement).getPropertyValue('--ok')}"></i> Completed for today (+150 pts)</div>` : `
+          <div class='muted'>Upload a photo as proof to complete.</div>
+          <div style='height:8px'></div>
+          <input type='file' id='dailyInput' accept='image/*' capture='environment'>
+          <div style='height:8px'></div>
+          <button onclick='submitTask()'><i class="fa-solid fa-upload"></i> Submit Proof</button>
+        `}
+      `;
+    }
+
+    // --- HERE: updateStreak logic (minimal addition) ---
+    function parseKeyToDate(key){
+      const [y,m,d] = key.split('-').map(Number);
+      return new Date(y, m-1, d);
+    }
+    function updateStreak(){
+      const key = todayKey();
+      // if already updated for today, do nothing
+      if(state.lastTaskDate === key) return;
+      if(!state.lastTaskDate){
+        state.streak = 1;
+      } else {
+        const lastDate = parseKeyToDate(state.lastTaskDate);
+        const todayDate = parseKeyToDate(key);
+        const diff = Math.round((todayDate - lastDate) / (1000*60*60*24));
+        if(diff === 1){
+          state.streak += 1; // consecutive
+        } else if(diff > 1){
+          state.streak = 1; // broken streak -> reset
+        } else {
+          // diff <= 0 -> same day or future; ignore
+        }
+      }
+      state.lastTaskDate = key;
+    }
+
+    function submitTask(){
+      const key=todayKey();
+      if(state.completedOn===key){ alert("You already completed today's mission."); return; }
+      const f=document.getElementById('dailyInput');
+      if(!f || !f.files || !f.files[0]){ alert('Please select a photo to upload.'); return; }
+      state.points += 150; state.completedOn = key;
+      updateStreak(); // minimal change: tie streak to daily task completion
+      checkBadges(); save();
+      alert('Great! +150 points added for completing today\'s mission.');
+      renderDailyBlock(); setTopInfo();
+    }
+    function submitTaskFromTaskPage(){
+      const key=todayKey();
+      if(state.completedOn===key){ alert("You already completed today's mission."); return; }
+      const f=document.getElementById('dailyInputTask');
+      if(!f || !f.files || !f.files[0]){ alert('Please select a photo to upload.'); return; }
+      state.points += 150; state.completedOn = key;
+      updateStreak(); // minimal change here as well
+      checkBadges(); save();
+      alert('Great! +150 points added for completing today\'s mission.');
+      renderTask(); setTopInfo();
+    }
+
+    // ACHIEVEMENTS
+    function renderBadges(){
+      const ALL=['Rookie Saver','Eco Hero','Planet Protector','Eco Legend'];
+      const icon=b=> b.includes('Legend')?'fa-crown':(b.includes('Protector')?'fa-shield-heart':(b.includes('Hero')?'fa-medal':'fa-leaf'));
+      return ALL.map(b=>`<span class='badge ${state.badges.includes(b)?'':'locked'}'><i class='fa-solid ${icon(b)}'></i>${b}</span>`).join('');
+    }
+    function renderAchievements(){
+      const el=document.getElementById('main');
+      el.innerHTML = `<div class='panel'><h2><i class="fa-solid fa-award"></i> Achievements</h2><div id='badgesWrap'>${renderBadges()}</div></div>`;
+    }
+    function checkBadges(){
+      const add=b=>{ if(!state.badges.includes(b)) state.badges.push(b); };
+      if(state.points>=500) add('Rookie Saver');
+      if(state.points>=1000) add('Eco Hero');
+      if(state.points>=5000) add('Planet Protector');
+      if(state.points>=10000) add('Eco Legend');
+      const w=document.getElementById('badgesWrap'); if(w) w.innerHTML=renderBadges();
+    }
+
+    // LEADERBOARD (simple demo)
+    function renderLeaderboard(){
+      const el=document.getElementById('main');
+      const rows = [
+        {name:state.name||'You', pts:state.points},
+        {name:'saloni jha', pts:4208},
+        {name:'ishika', pts:6100},
+        {name:'harsh raj', pts:2300}
+      ].sort((a,b)=>b.pts-a.pts);
+      el.innerHTML = `<div class='panel'><h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
+        ${rows.map((r,i)=>`<div style='display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border)'><span>${i+1}. ${r.name}</span><b>${r.pts}</b></div>`).join('')}
+      </div>`;
+    }
+
+    // CERTIFICATE
+    function renderCertificate(){
+      const el=document.getElementById('main');
+      el.innerHTML = `<div class='panel'><h2><i class="fa-solid fa-certificate"></i> Certificate</h2>
+        ${state.points>=10000?`<button onclick='downloadCertificate()'><i class="fa-solid fa-download"></i> Download Certificate</button>`:`<div class='muted'>Locked — reach <b>10,000</b> points to unlock.</div>`}
+      </div>`;
+    }
+    function downloadCertificate(){
+      const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'pt', format:'A4'});
+      // light blue certificate theme
+      doc.setFillColor(225, 243, 255); doc.rect(0,0,595,842,'F');
+      doc.setDrawColor(28,135,230); doc.setLineWidth(4); doc.rect(24,24,595-48,842-48);
+      doc.setTextColor(15, 42, 64);
+      doc.setFontSize(28); doc.text('EcoVerse Certificate of Achievement', 60, 140);
+      doc.setFontSize(16); doc.text(`This certifies that`, 60, 200);
+      doc.setFontSize(24); doc.text(`${state.name} (Class ${state.class})`, 60, 235);
+      doc.setFontSize(16); doc.text('has earned 10,000+ points for outstanding eco-actions.', 60, 270);
+      doc.setFontSize(12); doc.text('Date: '+new Date().toLocaleDateString(), 60, 330);
+      doc.text('EcoVerse Team', 60, 360);
+      doc.save('EcoVerse_Certificate.pdf');
+    }
+
+    // INIT
+    load();
+    if(!state.name){ renderLogin(); } else { setTopInfo(); show('dashboard'); }
+  </script>
+</body>
+</html>
